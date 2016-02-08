@@ -1,0 +1,12 @@
+{
+  "title": "Ben's Download App",
+  "name": "download-app-addon",
+  "version": "1.0.0",
+  "description": "The firefox backend for my image download server",
+  "main": "index.js",
+  "author": "Benjamin Kleiner",
+  "engines": {
+    "firefox": ">=38.0a1"
+  },
+  "license": "MIT"
+}
