@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+    <body>
+        <script type="text/javascript">
+            var ws = null;
+            addon.port.on('open', function(socketUrl) {
+                if (ws) {
+                    ws.close();
+                }
+                ws = new WebSocket(socketUrl);
+
+                ws.onmessage = function(event) {
+                    addon.port.emit('message', event.data);
+                };
+
+                ws.onopen = function(event) {
+                    addon.port.emit('opened', 'opened');
+                };
+
+                ws.onerror = function(event) {
+                    addon.port.emit('error', 'error');
+                };
+
+                ws.onclose = function(event) {
+                    addon.port.emit('closed', 'closed');
+                };
+            });
+
+            addon.port.on('send', function(data) {
+                if (ws) {
+                    ws.send(data);
+                } else {
+                    addon.port.emit('error', 'Socket not opened');
+                }
+            });
+        </script>
+    </body>
+</html>
