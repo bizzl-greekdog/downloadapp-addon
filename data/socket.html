@@ -3,30 +3,28 @@
     <body>
         <script type="text/javascript">
             var ws = null;
-            addon.port.on('open', function(socketUrl) {
-                if (ws) {
-                    ws.close();
-                }
+            var silent = false;
+            addon.port.on('open', function (socketUrl) {
                 ws = new WebSocket(socketUrl);
 
-                ws.onmessage = function(event) {
+                ws.onmessage = function (event) {
                     addon.port.emit('message', event.data);
                 };
 
-                ws.onopen = function(event) {
+                ws.onopen = function (event) {
                     addon.port.emit('opened', 'opened');
                 };
 
-                ws.onerror = function(event) {
+                ws.onerror = function (event) {
                     addon.port.emit('error', 'error');
                 };
 
-                ws.onclose = function(event) {
+                ws.onclose = function (event) {
                     addon.port.emit('closed', 'closed');
                 };
             });
 
-            addon.port.on('send', function(data) {
+            addon.port.on('send', function (data) {
                 if (ws) {
                     ws.send(data);
                 } else {

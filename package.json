@@ -8,5 +8,18 @@
   "engines": {
     "firefox": ">=38.0a1"
   },
+  "preferences": [{
+    "name": "serverUrl",
+    "title": "Server URL",
+    "description": "Full URL to the download apps web interface",
+    "type": "string",
+    "value": "http://localhost:8000/"
+  },{
+    "name": "socketUrl",
+    "title": "Socket URL",
+    "description": "URL to the download apps socket (with protocol and port)",
+    "type": "string",
+    "value": "ws://localhost:8888/"
+  }],
   "license": "MIT"
 }

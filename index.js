@@ -5,8 +5,7 @@ const tabs = require('sdk/tabs');
 const pageWorker = require('sdk/page-worker');
 const notifications = require('sdk/notifications');
 const timers = require('sdk/timers');
-
-var socketUrl = 'ws://localhost:8888/';
+const prefs = require('sdk/simple-prefs');
 
 var socket = pageWorker.Page({
     contentURL: self.data.url('socket.html')
@@ -16,20 +15,31 @@ socket.silent = false;
 socket.available = false;
 
 function socketConnect() {
-    socket.port.emit('open', socketUrl);
+    socket.port.emit('open', prefs.prefs.socketUrl);
 }
 
-socket.port.on('error', console.log);
+prefs.on('socketUrl', socketConnect);
 
-socket.port.on('message', function(message) {
+socket.port.on('message', function (message) {
     message = JSON.parse(message);
-    notifications.notify({
-        title: message.title,
-        text: message.text
-    });
+    console.log(message);
+    if (message.autoOpen) {
+        var url = prefs.prefs.serverUrl + '/notification/' + message.id;
+        tabs.open(url.replace(/([^:])\/\//g, '$1/'));
+    } else {
+        notifications.notify({
+            title: message.title,
+            text: message.text,
+            data: message.id.toString(),
+            onClick: function (data) {
+                var url = prefs.prefs.serverUrl + '/notification/' + data;
+                tabs.open(url.replace(/([^:])\/\//g, '$1/'));
+            }
+        });
+    }
 });
 
-socket.port.on('closed', function() {
+socket.port.on('closed', function () {
     if (!socket.silent) {
         notifications.notify({
             title: 'Download App disconnected'
@@ -40,7 +50,7 @@ socket.port.on('closed', function() {
     timers.setTimeout(socketConnect, 5000);
 });
 
-socket.port.on('opened', function() {
+socket.port.on('opened', function () {
     socket.available = true;
     socket.silent = false;
     notifications.notify({
@@ -62,13 +72,11 @@ function downloadUrl(data) {
     socket.port.emit('send', JSON.stringify(data));
 }
 
-
-
 function DownloadImage() {
-    self.on("click", function(node) {
+    self.on("click", function (node) {
         self.postMessage(JSON.stringify({
-                url: node.href || node.src,
-                referer: window.location.href
+            url: node.href || node.src,
+            referer: window.location.href
         }));
     });
 }
@@ -89,5 +97,17 @@ ui.ActionButton({
     },
     onClick: function () {
         downloadUrl(tabs.activeTab.url);
+    }
+});
+
+ui.ActionButton({
+    id: 'download-watchlists',
+    label: 'Download Watchlists',
+    icon: {
+        16: './boxdownload16.png',
+        32: './boxdownload32.png'
+    },
+    onClick: function () {
+        downloadUrl('watchlists');
     }
 });
