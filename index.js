@@ -74,8 +74,18 @@ function downloadUrl(data) {
 
 function DownloadImage() {
     self.on("click", function (node) {
+        var url = node.href || node.src;
+        if (node.nodeName.toLowerCase() == 'img') {
+            while (node.parentNode) {
+                node = node.parentNode;
+                if (node.href && node.nodeName.toLowerCase() == 'a') {
+                    url = node.href;
+                    break;
+                }
+            }
+        }
         self.postMessage(JSON.stringify({
-            url: node.href || node.src,
+            url: url,
             referer: window.location.href
         }));
     });

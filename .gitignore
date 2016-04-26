@@ -59,3 +59,6 @@ crashlytics-build.properties
 .*.kate-swp
 .swp.*
 
+### Firefox addons
+*.xpi
+
