@@ -6,6 +6,8 @@ const pageWorker = require('sdk/page-worker');
 const notifications = require('sdk/notifications');
 const timers = require('sdk/timers');
 const prefs = require('sdk/simple-prefs');
+const furaffinity = require('furaffinity');
+const request = require('sdk/request');
 
 var socket = pageWorker.Page({
     contentURL: self.data.url('socket.html')
@@ -13,6 +15,10 @@ var socket = pageWorker.Page({
 
 socket.silent = false;
 socket.available = false;
+
+function getServerUrl() {
+    return prefs.prefs.serverUrl.replace(/\/+$/, '');
+}
 
 function socketConnect() {
     socket.port.emit('open', prefs.prefs.socketUrl);
@@ -24,7 +30,7 @@ socket.port.on('message', function (message) {
     message = JSON.parse(message);
     console.log(message);
     if (message.autoOpen) {
-        var url = prefs.prefs.serverUrl + '/notification/' + message.id;
+        var url = getServerUrl() + '/notification/' + message.id;
         tabs.open(url.replace(/([^:])\/\//g, '$1/'));
     } else {
         notifications.notify({
@@ -32,7 +38,7 @@ socket.port.on('message', function (message) {
             text: message.text,
             data: message.id.toString(),
             onClick: function (data) {
-                var url = prefs.prefs.serverUrl + '/notification/' + data;
+                var url = getServerUrl() + '/notification/' + data;
                 tabs.open(url.replace(/([^:])\/\//g, '$1/'));
             }
         });
@@ -69,7 +75,18 @@ function downloadUrl(data) {
             referer: data
         };
     }
-    socket.port.emit('send', JSON.stringify(data));
+    if (data.url.indexOf('furaffinity.net/view') > -1) {
+        furaffinity.view(data.url, function(data) {
+            request.Request({
+                url: getServerUrl() + '/put',
+                contentType: 'application/json',
+                content: JSON.stringify(data),
+                onComplete: function(response) { console.log(response); }
+            }).post();
+        });
+    } else {
+        socket.port.emit('send', JSON.stringify(data));
+    }
 }
 
 function DownloadImage() {
