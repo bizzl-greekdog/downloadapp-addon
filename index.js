@@ -8,6 +8,7 @@ const timers = require('sdk/timers');
 const prefs = require('sdk/simple-prefs');
 const furaffinity = require('furaffinity');
 const request = require('sdk/request');
+const utilities = require('utilities');
 
 var socket = pageWorker.Page({
     contentURL: self.data.url('socket.html')
@@ -24,11 +25,7 @@ function socketConnect() {
     socket.port.emit('open', prefs.prefs.socketUrl);
 }
 
-prefs.on('socketUrl', socketConnect);
-
-socket.port.on('message', function (message) {
-    message = JSON.parse(message);
-    console.log(message);
+function showNotification(message) {
     if (message.autoOpen) {
         var url = getServerUrl() + '/notification/' + message.id;
         tabs.open(url.replace(/([^:])\/\//g, '$1/'));
@@ -43,6 +40,29 @@ socket.port.on('message', function (message) {
             }
         });
     }
+}
+
+function putDownloads(data) {
+    request.Request({
+        url: getServerUrl() + '/put',
+        contentType: 'application/json',
+        content: JSON.stringify(data),
+        onComplete: function(response) {
+            if (response.json) {
+                showNotification(response.json);
+            } else {
+                utilities.stringToFile(response.text, '/tmp/downloadapp-addon.html');
+                utilities.stringToFile(JSON.stringify(data), '/tmp/downloadapp-addon.json');
+                tabs.open('/tmp/downloadapp-addon.html');
+            }
+        }
+    }).post();
+}
+
+prefs.on('socketUrl', socketConnect);
+
+socket.port.on('message', function (message) {
+    showNotification(JSON.parse(message));
 });
 
 socket.port.on('closed', function () {
@@ -76,14 +96,9 @@ function downloadUrl(data) {
         };
     }
     if (data.url.indexOf('furaffinity.net/view') > -1) {
-        furaffinity.view(data.url, function(data) {
-            request.Request({
-                url: getServerUrl() + '/put',
-                contentType: 'application/json',
-                content: JSON.stringify(data),
-                onComplete: function(response) { console.log(response); }
-            }).post();
-        });
+        furaffinity.view(data.url, putDownloads);
+    } else if (data.url.indexOf('furaffinity.net/msg') > -1) {
+        furaffinity.msg('http://www.furaffinity.net/msg/submissions/', putDownloads);
     } else {
         socket.port.emit('send', JSON.stringify(data));
     }
